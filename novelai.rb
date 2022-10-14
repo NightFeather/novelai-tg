@@ -36,12 +36,12 @@ class ModelConfig
   integer :steps, range: 1..50, default: 28
   integer :scale, range: 2..100, default: 14
   integer :seed
+  boolean :qualityToggle, default: true
   float :strength, min: 0, max: 1
   float :noise, min: 0, max: 1
   string :negative, default: ""
   enum :negative_preset, values: [ 0, 1, 2 ]
   enum :sampler, values: %w{k_euler_ancestral k_euler k_lms plms ddim}
-  enum :qualityToggle, values: [ true, false ]
 
   def to_s
     JSON.dump self.class.fields

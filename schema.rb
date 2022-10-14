@@ -16,6 +16,17 @@ module Schema
       end
     end
 
+    class Boolean < Base
+      def sanitize v
+        return true if v =~ /^(true|yes)$/i
+        return false if v =~ /^(false|no)$/i
+        v
+      end
+      def validate value
+        return [true, false].include?(value)
+      end
+    end
+
     class Numeric < Base
       def initial
         super or @options['min']
@@ -99,7 +110,7 @@ module Schema
         end
       end
 
-      %w{integer float string enum}.each do |t|
+      %w{integer float string enum boolean}.each do |t|
         define_method(t) do |*args, **kwargs|
           field t, *args, **kwargs
         end
