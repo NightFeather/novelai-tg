@@ -1,5 +1,6 @@
 require 'net/https'
 require 'json'
+require_relative "./http_request.rb"
 
 module Tg
   class Update
@@ -56,40 +57,42 @@ module Tg
     end
   
     def get_updates
-      resp = http_request :post_form, 'getUpdates', offset: @offset
+      resp = http_request :get_response, 'getUpdates', params: { offset: @offset }
       if resp['ok']
         unless resp['result'].empty?
           @offset = resp['result'].last['update_id'] + 1
         end
         resp['result'].map { |upd| Update.from upd }
       else
-        resp
+        raise resp
       end
     end
   
-    def send_message chat_id, text, *, reply_to: nil
-      http_request :post_form, 'sendMessage', chat_id: chat_id, text: text, reply_to_message_id: reply_to
+    def send_message chat_id, text, *, reply_to: nil, **kwargs
+      http_request :post_form, 'sendMessage', body: { chat_id: chat_id, text: text, reply_to_message_id: reply_to, parse_mode: 'MarkdownV2' }, **kwargs
     end
   
-    def send_photo chat_id, photo, *, caption: nil, reply_to: nil
-      http_request :post_multipart, 'sendPhoto', chat_id: chat_id.to_s, photo: photo, caption: caption, reply_to_message_id: reply_to&.to_s
+    def send_photo chat_id, photo, *, caption: nil, reply_to: nil, **kwargs
+      http_request :post_multipart, 'sendPhoto',
+        body: { chat_id: chat_id.to_s, photo: photo, caption: caption, reply_to_message_id: reply_to&.to_s },
+        **kwargs
     end
   
-    def send_file chat_id, file, *, caption: nil, reply_to: nil
-      http_request :post_multipart, 'sendDocument', chat_id: chat_id.to_s, document: file, caption: caption, reply_to_message_id: reply_to&.to_s
+    def send_file chat_id, file, *, caption: nil, reply_to: nil, **kwargs
+      http_request :post_multipart,
+        'sendDocument',
+        body: { chat_id: chat_id.to_s, document: file, caption: caption, reply_to_message_id: reply_to&.to_s },
+        **kwargs
     end
   
     private
-    def http_request http_method, tg_method, *args, **kwargs
+    def http_request http_method, tg_method, body: nil, params: {}, headers: {}, raw: false, panic_on_error: false
       uri = URI"https://api.telegram.org/bot#{@token}/#{tg_method}"
-      if http_method == :post_multipart
-        req = Net::HTTP::Post.new uri
-        req.set_form kwargs.compact.transform_keys(&:to_s)
-        req['Content-Type'] = 'multipart/form-data'
-        JSON.parse Net::HTTP.start(req.uri.host, req.uri.port, use_ssl: true) { |http| http.request req }.read_body
-      else
-        JSON.parse Net::HTTP.send(http_method, uri, *args, **kwargs).read_body
-      end
+      uri.query = URI.encode_www_form params
+      resp = send_http_request(http_method, uri, body, headers)
+      resp.error! if panic_on_error and not resp.is_a? Net::HTTPSuccess
+      return JSON.parse resp.read_body unless raw
+      resp
     end
   end
 end
