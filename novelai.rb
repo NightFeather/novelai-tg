@@ -44,7 +44,7 @@ class ModelConfig
   enum :sampler, values: %w{k_euler_ancestral k_euler k_lms plms ddim}
 
   def to_s
-    JSON.dump self.class.fields
+    JSON.pretty_generate self.class.fields
       .keys.reduce({}) { |o, k|
         o[k] = send k
         o
@@ -67,6 +67,7 @@ class ModelConfig
 end
 
 class NovelAI
+  Exception = Class.new Exception
   MODELS = %w{stable-diffusion nai-diffusion safe-diffusion nai-diffusion-furry}
   TIERS = %w{TABLET XXX OPUS}
 
@@ -109,16 +110,20 @@ class NovelAI
 
   def generate
     r = http_request :post, "/ai/generate-image", body: { input: @prompt, model: @model, parameters: @config.to_h }, credential: true
-    if r.is_a? Net::HTTPSuccess and r.content_type == 'text/event-stream'
-      r.body.split("\n").reduce([{}]) { |o, l|
-        k,v = l.split(":", 2)
-        if k.strip == 'id' and o.last.key? 'id' and o.last['id'] != v.strip.to_i
-          o.append({ 'id' => v.strip.to_i })
-        else
-          o.last[k.strip] = v&.strip
-        end
-        o
-      }
+    if r.is_a? Net::HTTPSuccess
+      if r.content_type == 'text/event-stream'
+        r.body.split("\n").reduce([{}]) { |o, l|
+          k,v = l.split(":", 2)
+          if k.strip == 'id' and o.last.key? 'id' and o.last['id'] != v.strip.to_i
+            o.append({ 'id' => v.strip.to_i })
+          else
+            o.last[k.strip] = v&.strip
+          end
+          o
+        }
+      else
+        []
+      end
     else
       r.error!
     end
@@ -132,6 +137,8 @@ class NovelAI
     h = headers.merge({"Content-Type": "application/json"}) 
     h = h.merge({"Authorization": "Bearer #{@token}"}) if credential
     send_http_request http_method, uri, JSON.dump(body), h
+  rescue Net::HTTPExceptions => e
+    raise NovelAI::Exception.new e.response.body
   end
 end
 

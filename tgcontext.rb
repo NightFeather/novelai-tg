@@ -3,6 +3,7 @@ require 'json'
 require_relative "./http_request.rb"
 
 module Tg
+  Exception = Class.new Exception
   class Update
     attr_reader :entity, :type, :id
     def self.from obj
@@ -93,6 +94,8 @@ module Tg
       resp.error! if panic_on_error and not resp.is_a? Net::HTTPSuccess
       return JSON.parse resp.read_body unless raw
       resp
+    rescue Net::HTTPExceptions => e
+      raise Tg::Exception.new e.response.body
     end
   end
 end

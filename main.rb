@@ -28,7 +28,7 @@ def nai_config ctx, text
       elsif cmd == 'get'
         val = @ai.config.send field
         if val.nil? or val == ''
-          ctx.reply_message "`<empty value>`"
+          ctx.reply_message "`<empty>`"
         else
           ctx.reply_message "`#{val.inspect}`"
         end
@@ -58,17 +58,42 @@ def nai_config ctx, text
 end
 
 def nai_handle ctx, text
+  if text.nil?
+    ctx.reply_message [
+      "missing subcommand",
+      "subcommand available: `prompt, config, generate, price`"
+    ].join("\n")
+    return
+  end
+
   cmd, rest = text.split " ", 2
   if cmd == 'prompt'
     if rest.nil? or rest.strip.empty?
       if @ai.prompt.nil? or @ai.prompt.empty?
-        ctx.reply_message "`<empty prompt>`"
+        ctx.reply_message "`<empty>`"
       else
         ctx.reply_message "`#{@ai.prompt}`"
       end
     else
       @ai.prompt = rest.strip
       ctx.reply_message "done, price change to #{@ai.price}"
+    end
+  elsif cmd == 'model'
+    m = @ai.model
+    p cmd, rest, m
+    if rest and rest.strip.size > 0
+      @ai.model = rest.strip
+      if m == @ai.model
+        ctx.reply_message "model unchanged."
+      else
+        ctx.reply_message "model changed, price change to #{@ai.price}"
+      end
+    else
+      if m.nil? or m.empty?
+        ctx.reply_message "`<empty>`"
+      else
+        ctx.reply_message "`#{@ai.model}`"
+      end
     end
   elsif cmd == 'config'
     if rest and rest.strip.size > 0
@@ -82,19 +107,23 @@ def nai_handle ctx, text
     else
       pmpt = @ai.prompt
       r = @ai.generate
-      imev = r.select { |ev| ev['event'] == 'newImage' }.first
-      if imev
-        f = Tempfile.new ['generated', '.png']
-        begin
-          f.write Base64.decode64 imev['data']
-          f.rewind
-          r = ctx.reply_file f
-          ctx.reply_message "Error: `#{r['description']}`" unless r['ok']
-        ensure
-          f.close
-        end
+      if r.empty?
+        ctx.reply_message "Server returned empty response, retry later."
       else
-        ctx.reply_message "found events: `#{r.map{|e| e['event']}.join(", ")}`"
+        imev = r.select { |ev| ev['event'] == 'newImage' }.first
+        if imev
+          f = Tempfile.new ['generated', '.png']
+          begin
+            f.write Base64.decode64 imev['data']
+            f.rewind
+            r = ctx.reply_file f
+            ctx.reply_message "Error: `#{r['description']}`" unless r['ok']
+          ensure
+            f.close
+          end
+        else
+          ctx.reply_message "found events: `#{r.map{|e| e['event']}.join(", ")}`"
+        end
       end
     end
   elsif cmd == 'price'
@@ -105,9 +134,9 @@ def nai_handle ctx, text
       current available options
     EOM
   end
-rescue Net::HTTPError => e
+rescue NovelAI::Exception => e
   puts e.full_message
-  ctx.reply_message "something gone wrong: #{e.message}" 
+  ctx.reply_message "NovelAI Error: #{e.message.dump}"
 end
 
 def handle ctx, msg
@@ -121,6 +150,8 @@ def handle ctx, msg
   rest = msg['text'][cmd_ent['offset']+cmd_ent['length']+1, msg['text'].size]
   return nai_handle ctx, rest if cmd == '/nai'
   puts "unknown command: #{msg}"
+rescue Tg::Exception => e
+  puts e.full_message
 end
 
 loop do
