@@ -12,14 +12,16 @@ module Schema
         @options['sanitizer']&.call(value) or value
       end
       def validate value
-        return false
+        return true
       end
     end
 
     class Boolean < Base
       def sanitize v
-        return true if v =~ /^(true|yes)$/i
-        return false if v =~ /^(false|no)$/i
+        if v.is_a? String
+          return true if v =~ /^(t(rue)?|y(es)?|1)$/i
+          return false if v =~ /^(f(alse)?|no?|0)$/i
+        end
         v
       end
       def validate value
