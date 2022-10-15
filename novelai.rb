@@ -109,11 +109,11 @@ class NovelAI
 
   def generate
     r = http_request :post, "/ai/generate-image", body: { input: @prompt, model: @model, parameters: @config.to_h }, credential: true
-    if r.is_a? Net::HTTPSuccess
+    if r.is_a? Net::HTTPSuccess and r.content_type == 'text/event-stream'
       r.body.split("\n").reduce([{}]) { |o, l|
         k,v = l.split(":", 2)
         if k.strip == 'id' and o.last.key? 'id' and o.last['id'] != v.strip.to_i
-          o.append({ 'id': v.strip.to_i })
+          o.append({ 'id' => v.strip.to_i })
         else
           o.last[k.strip] = v&.strip
         end
