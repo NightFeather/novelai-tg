@@ -106,9 +106,10 @@ def nai_handle ctx, text
       ctx.reply_message "empty prompt"
     else
       pmpt = @ai.prompt
+      m = ctx.reply_message "Data sent, waiting\\.\\.\\."
       r = @ai.generate
       if r.empty?
-        ctx.reply_message "Server returned empty response, retry later."
+        @bot.edit_message ctx.chat_id, m["message_id"], "Server returned empty response, retry later\\."
       else
         imev = r.select { |ev| ev['event'] == 'newImage' }.first
         if imev
@@ -116,8 +117,8 @@ def nai_handle ctx, text
           begin
             f.write Base64.decode64 imev['data']
             f.rewind
-            r = ctx.reply_file f
-            ctx.reply_message "Error: `#{r['description']}`" unless r['ok']
+            @bot.delete_message ctx.chat_id, m["message_id"]
+            ctx.reply_file f
           ensure
             f.close
           end
