@@ -59,6 +59,7 @@ class ModelConfig
       steps: @steps,
       scale: @scale,
       seed: @seed,
+      qualityToggle: @qualityToggle,
       uc: @negative,
       ucPreset: @negative_preset,
       sampler: @sampler,
