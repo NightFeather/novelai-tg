@@ -22,7 +22,7 @@ module Schema
           return true if v =~ /^(t(rue)?|y(es)?|1)$/i
           return false if v =~ /^(f(alse)?|no?|0)$/i
         end
-        v
+        super v
       end
       def validate value
         return [true, false].include?(value)
@@ -31,7 +31,8 @@ module Schema
 
     class Numeric < Base
       def initial
-        super or @options['min']
+        return @options['default'] if @options.key? 'default'
+        @options['min']
       end
       def validate value
         return false unless value.is_a? ::Numeric
@@ -43,7 +44,8 @@ module Schema
 
     class Integer < Numeric
       def initial
-        super or @options['min'] or @options['range']&.first
+        return @options['default'] if @options.key? 'default'
+        @options['min'] or @options['range']&.first
       end
       def validate value
         super unless super
@@ -52,26 +54,27 @@ module Schema
         return true
       end
       def sanitize value
-        value.to_i or super
+        value.respond_to? :to_i and value.to_i or super
       end
     end
 
     class Float < Numeric
       def sanitize value
-        value.to_f or super
+        value.respond_to? :to_f and value.to_f or super
       end
     end
 
     class String < Base
       def initial
-        super or ""
+        return @options['default'] if @options.key? 'default'
+        ""
       end
       def validate value
         return false if @options['pattern'] and value !~ @options['pattern']
         return true
       end
       def sanitize value
-        value.to_s or super
+        value.respond_to? :to_s and value.to_s or super
       end
     end
 
