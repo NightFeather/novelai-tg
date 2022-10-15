@@ -68,7 +68,11 @@ module Tg
         raise resp
       end
     end
-  
+
+    def delete_message chat_id, message_id, *, **kwargs
+      http_request :post_form, 'deleteMessage', body: { chat_id: chat_id, message_id: message_id}, **kwargs
+    end
+
     def send_message chat_id, text, *, reply_to: nil, **kwargs
       http_request :post_form, 'sendMessage', body: { chat_id: chat_id, text: text, reply_to_message_id: reply_to, parse_mode: 'MarkdownV2' }, **kwargs
     end
