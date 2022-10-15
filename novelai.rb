@@ -37,8 +37,8 @@ class ModelConfig
   integer :scale, range: 2..100, default: 14
   integer :seed
   boolean :qualityToggle, default: true
-  float :strength, min: 0, max: 1
-  float :noise, min: 0, max: 1
+  float :strength, min: 0, max: 1, default: nil
+  float :noise, min: 0, max: 1, default: nil
   string :negative, default: ""
   enum :negative_preset, values: [ 0, 1, 2 ]
   enum :sampler, values: %w{k_euler_ancestral k_euler k_lms plms ddim}
@@ -139,6 +139,8 @@ class NovelAI
     send_http_request http_method, uri, JSON.dump(body), h
   rescue Net::HTTPExceptions => e
     raise NovelAI::Exception.new e.response.body
+  rescue Net::ReadTimeout => e
+    raise NovelAI::Exception.new "Server Timeout"
   end
 end
 
