@@ -105,7 +105,7 @@ class NovelAI
         return o['costPerPrompt']*(o["numPrompts"] - o["freePrompts"])
       end
     else
-      r.error!
+      raise NovelAI::Exception.new r.body
     end
   end
 
@@ -126,7 +126,7 @@ class NovelAI
         []
       end
     else
-      r.error!
+      raise NovelAI::Exception.new "Server error"
     end
   end
 
@@ -138,8 +138,6 @@ class NovelAI
     h = headers.merge({"Content-Type": "application/json"}) 
     h = h.merge({"Authorization": "Bearer #{@token}"}) if credential
     send_http_request http_method, uri, JSON.dump(body), h
-  rescue Net::HTTPExceptions => e
-    raise NovelAI::Exception.new e.response.body
   rescue Net::ReadTimeout => e
     raise NovelAI::Exception.new "Server Timeout"
   end
