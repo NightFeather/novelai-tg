@@ -106,7 +106,7 @@ module Schema
         end
         define_method("#{name}=") do |v|
           _v = self.class.fields[name].sanitize v
-          instance_variable_set "@#{name}", v if self.class.fields[name].validate _v
+          instance_variable_set "@#{name}", _v if self.class.fields[name].validate _v
         end
       end
 
