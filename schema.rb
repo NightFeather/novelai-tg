@@ -94,9 +94,13 @@ module Schema
     end
 
     def initialize
-      self.class.fields.each_pair do |f, v|
+      self.fields.each_pair do |f, v|
         instance_variable_set "@#{f}", v.initial
       end
+    end
+
+    def fields
+      self.class.fields
     end
 
     module ClassMethods
@@ -110,8 +114,8 @@ module Schema
           instance_variable_get "@#{name}"
         end
         define_method("#{name}=") do |v|
-          _v = self.class.fields[name].sanitize v
-          instance_variable_set "@#{name}", _v if self.class.fields[name].validate _v
+          _v = self.fields[name].sanitize v
+          instance_variable_set "@#{name}", _v if self.fields[name].validate _v
         end
       end
 

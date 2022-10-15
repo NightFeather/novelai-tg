@@ -21,7 +21,7 @@ def nai_config ctx, text
       return
     end
     field, rest = rest.split " ", 2
-    if @ai.config.class.fields.keys.map(&:to_s).include? field
+    if @ai.config.fields.keys.map(&:to_s).include? field
       if cmd == 'set'
         @ai.config.send "#{field}=", rest
         ctx.reply_message "done, price change to #{@ai.price}"
@@ -33,22 +33,22 @@ def nai_config ctx, text
           ctx.reply_message "`#{val.inspect}`"
         end
       elsif cmd == 'reset'
-        @ai.config.send "#{field}=", @ai.config.class.fields[field.to_sym].initial
+        @ai.config.send "#{field}=", @ai.config.fields[field.to_sym].initial
         ctx.reply_message "done, price change to #{@ai.price}"
       else
         ctx.reply_message <<-EOM.strip
           invalid field #{field}
-          valid fields: [#{@ai.config.class.fields.keys.join(", ")}]
+          valid fields: [#{@ai.config.fields.keys.join(", ")}]
         EOM
       end
     else
       ctx.reply_message <<-EOM.strip
         invalid field #{field}
-        valid fields: [#{@ai.config.class.fields.keys.join(", ")}]
+        valid fields: [#{@ai.config.fields.keys.join(", ")}]
       EOM
     end
   elsif cmd == 'list'
-    ctx.reply_message "`#{@ai.config.class.fields.keys.join("\n")}`"
+    ctx.reply_message "`#{@ai.config.fields.keys.join("\n")}`"
   else
     ctx.reply_message <<-EOM.strip
     invalid operation #{cmd}

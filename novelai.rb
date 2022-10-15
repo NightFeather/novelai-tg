@@ -44,7 +44,7 @@ class ModelConfig
   enum :sampler, values: %w{k_euler_ancestral k_euler k_lms plms ddim}
 
   def to_s
-    JSON.pretty_generate self.class.fields
+    JSON.pretty_generate self.fields
       .keys.reduce({}) { |o, k|
         o[k] = send k
         o
