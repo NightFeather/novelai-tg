@@ -4,25 +4,19 @@ require_relative "./http_request.rb"
 
 module Tg
   Exception = Class.new Exception
+
   class Update
     attr_reader :entity, :type, :id
     def self.from obj
-      if obj['message']
-        Update::Message.new obj['update_id'], obj['message']
-      else
-        nil
-      end
+      o = obj.dup
+      i = o.delete 'update_id'
+      t = o.keys.first
+      Update.new t, i, o[t]
     end
     def initialize type, id, entity
-      @entity = entity
       @type = type
       @id = id
-    end
-
-    class Message < Update
-      def initialize *args
-        super 'message', *args
-      end
+      @entity = entity
     end
   end
   
@@ -59,14 +53,14 @@ module Tg
   
     def get_updates
       resp = http_request :get_response, 'getUpdates', params: { offset: @offset }
-      if resp['ok']
-        unless resp['result'].empty?
-          @offset = resp['result'].last['update_id'] + 1
-        end
-        resp['result'].map { |upd| Update.from upd }
-      else
-        raise resp
+      unless resp.empty?
+        @offset = resp.last['update_id'] + 1
       end
+      resp.map { |upd| Update.from upd }
+    end
+
+    def edit_message chat_id, message_id, text, **kwargs
+      http_request :post_form, 'editMessage', body: { chat_id: chat_id, message_id: message_id, text: text }, **kwargs
     end
 
     def delete_message chat_id, message_id, *, **kwargs
@@ -94,10 +88,21 @@ module Tg
     def http_request http_method, tg_method, body: nil, params: {}, headers: {}, raw: false, panic_on_error: false
       uri = URI"https://api.telegram.org/bot#{@token}/#{tg_method}"
       uri.query = URI.encode_www_form params
-      resp = send_http_request(http_method, uri, body, headers)
-      resp.error! if panic_on_error and not resp.is_a? Net::HTTPSuccess
-      return JSON.parse resp.read_body unless raw
-      resp
+      resp = send_http_request(http_method, uri, body, headers.merge({ 'Accept' => 'application/json' }))
+      if raw
+        return resp
+      else
+        if resp.content_type == 'application/json'
+          o = JSON.parse resp.read_body
+          if o["ok"]
+            return o["result"]
+          else
+            raise Tg::Exception.new o["description"]
+          end
+        else
+          raise Tg::Exception.new "Unexpected content-type: #{resp.content_type}"
+        end
+      end
     rescue Net::HTTPExceptions => e
       raise Tg::Exception.new e.response.body
     end
