@@ -3,7 +3,9 @@ require 'json'
 require_relative "./http_request.rb"
 
 module Tg
-  Exception = Class.new Exception
+  Exception = Class.new ::Exception
+  YourFault = Class.new Exception
+  TheirFault = Class.new Exception
 
   class Update
     attr_reader :entity, :type, :id
@@ -33,7 +35,13 @@ module Tg
       @user_id = user_id
       @message_id = message_id
     end
-  
+
+    %w{edit_message delete_message}.each do |m|
+      define_method(m) do |*args, **kwargs|
+        @bot.send m, chat_id, *args, **kwargs
+      end
+    end
+
     %w{message photo file}.each do |m|
       define_method("send_#{m}") do |*args, **kwargs|
         @bot.send "send_#{m}", chat_id, *args, **kwargs
@@ -97,10 +105,10 @@ module Tg
           if o["ok"]
             return o["result"]
           else
-            raise Tg::Exception.new o["description"]
+            raise Tg::YourFault.new o["description"]
           end
         else
-          raise Tg::Exception.new "Unexpected content-type: #{resp.content_type}"
+          raise Tg::TheirFault.new "Unexpected content-type: #{resp.content_type}"
         end
       end
     rescue Net::HTTPExceptions => e
