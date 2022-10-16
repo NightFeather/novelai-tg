@@ -110,7 +110,10 @@ class NovelAI
   end
 
   def generate
-    r = http_request :post, "/ai/generate-image", body: { input: @prompt, model: @model, parameters: @config.to_h }, credential: true
+    r = http_request :post,
+      URI("https://backend-production-svc.novelai.net/ai/generate-image"),
+      body: { input: @prompt, model: @model, parameters: @config.to_request },
+      credential: true
     if r.is_a? Net::HTTPSuccess
       if r.content_type == 'text/event-stream'
         r.body.split("\n").reduce([{}]) { |o, l|
@@ -126,15 +129,18 @@ class NovelAI
         []
       end
     else
-      raise NovelAI::Exception.new "Server error"
+      raise NovelAI::Exception.new "Server error: #{r.code} #{r.message}"
     end
   end
 
   private
   def http_request http_method, endpoint, params: {}, body: {}, headers: {}, credential: false
-    uri = URI"https://api.novelai.net"
-    uri.path = endpoint
-    uri.query = URI.encode_www_form params
+    uri = endpoint
+    unless endpoint.is_a? URI
+      uri = URI"https://api.novelai.net"
+      uri.path = endpoint
+      uri.query = URI.encode_www_form params
+    end
     h = headers.merge({"Content-Type": "application/json"}) 
     h = h.merge({"Authorization": "Bearer #{@token}"}) if credential
     send_http_request http_method, uri, JSON.dump(body), h
