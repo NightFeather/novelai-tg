@@ -10,14 +10,24 @@ require 'base64'
 def nai_config ctx, text
   cmd, rest = text.split " ", 2
   if cmd == 'save'
-    ctx.reply_message "`not implemented`"
+    File.open("model_config_#{@ai.model}.json", mode: 'wb') do |f|
+      f.write @ai.config.to_json
+    end
+    ctx.reply_message "done"
   elsif cmd == 'load'
-    ctx.reply_message "`not implemented`"
+    if File.exists? "model_config_#{@ai.model}.json"
+      File.open("model_config_#{@ai.model}.json", mode: 'rb') do |f|
+        @ai.config.from_hash JSON.parse f.read
+      end
+      ctx.reply_message "done"
+    else
+      ctx.reply_message "No saved config"
+    end
   elsif cmd == 'dump'
     ctx.reply_message "`#{@ai.config.to_s}`"
   elsif %w{get set reset}.include? cmd
     if rest.nil? or rest.empty?
-      ctx.reply_message "you have to supply a field."
+      ctx.reply_message "you have to supply a field"
       return
     end
     field, rest = rest.split " ", 2
@@ -84,7 +94,7 @@ def nai_handle ctx, text
     if rest and rest.strip.size > 0
       @ai.model = rest.strip
       if m == @ai.model
-        ctx.reply_message "model unchanged."
+        ctx.reply_message "model unchanged"
       else
         ctx.reply_message "model changed, price change to #{@ai.price}"
       end
@@ -106,10 +116,11 @@ def nai_handle ctx, text
       ctx.reply_message "empty prompt"
     else
       pmpt = @ai.prompt
-      m = ctx.reply_message "Data sent, waiting\\.\\.\\."
+      m = ctx.reply_message "Data sent"
+      begin
       r = @ai.generate
       if r.empty?
-        @bot.edit_message ctx.chat_id, m["message_id"], "Server returned empty response, retry later\\."
+        ctx.edit_message m["message_id"], "Server returned empty response, retry later"
       else
         imev = r.select { |ev| ev['event'] == 'newImage' }.first
         if imev
@@ -117,7 +128,6 @@ def nai_handle ctx, text
           begin
             f.write Base64.decode64 imev['data']
             f.rewind
-            @bot.delete_message ctx.chat_id, m["message_id"]
             ctx.reply_file f
           ensure
             f.close
@@ -126,9 +136,12 @@ def nai_handle ctx, text
           ctx.reply_message "found events: `#{r.map{|e| e['event']}.join(", ")}`"
         end
       end
+      ensure
+        ctx.delete_message m["message_id"]
+      end
     end
   elsif cmd == 'price'
-    ctx.reply_message "current settings will cost #{@ai.price} on generation."
+    ctx.reply_message "current settings will cost #{@ai.price} on generation"
   else
     ctx.reply_message <<-EOM
       invalid command #{cmd}
