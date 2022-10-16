@@ -93,7 +93,7 @@ class NovelAI
   end
 
   def model= m
-    @model = m if MODEL.includes? m
+    @model = m if MODELS.include? m
   end
 
   def price
