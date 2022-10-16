@@ -32,9 +32,10 @@ def nai_config ctx, text
     end
     field, rest = rest.split " ", 2
     if @ai.config.fields.keys.map(&:to_s).include? field
+      m = nil
       if cmd == 'set'
         @ai.config.send "#{field}=", rest
-        ctx.reply_message "done, price change to #{@ai.price}"
+        m = ctx.reply_message "done"
       elsif cmd == 'get'
         val = @ai.config.send field
         if val.nil? or val == ''
@@ -44,12 +45,20 @@ def nai_config ctx, text
         end
       elsif cmd == 'reset'
         @ai.config.send "#{field}=", @ai.config.fields[field.to_sym].initial
-        ctx.reply_message "done, price change to #{@ai.price}"
+        m = ctx.reply_message "done"
       else
         ctx.reply_message <<-EOM.strip
           invalid field #{field}
           valid fields: [#{@ai.config.fields.keys.join(", ")}]
         EOM
+      end
+      unless m.nil?
+        begin
+          price = @ai.price
+          ctx.edit_message m["message_id"], "done, price change to #{price}"
+        rescue NovelAI::Exception => e
+          ctx.edit_message m["message_id"], "done, failed when getting updated price"
+        end
       end
     else
       ctx.reply_message <<-EOM.strip
