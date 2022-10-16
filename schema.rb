@@ -103,6 +103,10 @@ module Schema
       self.class.fields
     end
 
+    def to_h
+      fields.each_pair.reduce({}) { |o, (k,_)| o[k] = send k; o }
+    end
+
     module ClassMethods
       def fields
         @fields ||= {}

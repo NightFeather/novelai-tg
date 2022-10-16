@@ -44,14 +44,22 @@ class ModelConfig
   enum :sampler, values: %w{k_euler_ancestral k_euler k_lms plms ddim}
 
   def to_s
-    JSON.pretty_generate self.fields
-      .keys.reduce({}) { |o, k|
-        o[k] = send k
-        o
-      }
+    JSON.pretty_generate to_h
   end
 
-  def to_h
+  def to_json
+    JSON.dump to_h
+  end
+
+  def from_hash h
+    h.each_pair do |k,v|
+      if fields.key? k.to_sym
+        send "#{k}=", v
+      end
+    end
+  end
+
+  def to_request
     {
       height: @height,
       width: @width,
@@ -93,7 +101,7 @@ class NovelAI
       :post,
       "/ai/generate-image/request-price",
       body: {
-        request: { input: [@prompt], model: @model, parameters: @config.to_h },
+        request: { input: [@prompt], model: @model, parameters: @config.to_request },
         tier: 'OPUS'
       }
     )
