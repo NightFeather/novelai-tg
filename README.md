@@ -1,4 +1,5 @@
-# A telegram bot for interactive with novel-ai image generation in ruby
+# NovelAI telegram bot
+A telegram bot for interacting with novel-ai image generation in ruby
 
 ## Commands
 - /nai
