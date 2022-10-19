@@ -1,7 +1,10 @@
 require_relative './tgcontext.rb'
 require_relative './novelai.rb'
+require_relative './utils.rb'
 require 'tempfile'
 require 'base64'
+
+using MarkdownV2
 
 @bot = Tg::TgBot.new ENV['TELEGRAM_TOKEN']
 @ai = NovelAI.new ENV['NAI_TOKEN']
@@ -48,7 +51,7 @@ def nai_config ctx, text
         m = ctx.reply_message "done"
       else
         ctx.reply_message <<-EOM.strip
-          invalid field #{field}
+          invalid field #{field.mdv2_escape}
           valid fields: [#{@ai.config.fields.keys.join(", ")}]
         EOM
       end
@@ -62,7 +65,7 @@ def nai_config ctx, text
       end
     else
       ctx.reply_message <<-EOM.strip
-        invalid field #{field}
+        invalid field #{field.mdv2_escape}
         valid fields: [#{@ai.config.fields.keys.join(", ")}]
       EOM
     end
@@ -70,7 +73,7 @@ def nai_config ctx, text
     ctx.reply_message "`#{@ai.config.fields.keys.join("\n")}`"
   else
     ctx.reply_message <<-EOM.strip
-    invalid operation #{cmd}
+    invalid operation `#{cmd.mdv2_escape}`
     supported operations: `get, set, list, dump, save, load`
     EOM
   end
@@ -153,7 +156,7 @@ def nai_handle ctx, text
     ctx.reply_message "current settings will cost #{@ai.price} on generation"
   else
     ctx.reply_message <<-EOM
-      invalid command #{cmd}
+      invalid command #{cmd.mdv2_escape}
       current available options
     EOM
   end
