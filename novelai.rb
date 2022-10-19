@@ -99,7 +99,7 @@ class NovelAI
   def price
     r = http_request(
       :post,
-      "/ai/generate-image/request-price",
+      URI("https://backend-production-svc.novelai.net/ai/generate-image/request-price"),
       body: {
         request: { input: [@prompt], model: @model, parameters: @config.to_request },
         tier: 'OPUS'
@@ -113,7 +113,7 @@ class NovelAI
         return o['costPerPrompt']*(o["numPrompts"] - o["freePrompts"])
       end
     else
-      raise NovelAI::Exception.new r.body
+      raise NovelAI::Exception.new "#{r.code} #{r.message.dump}"
     end
   end
 
