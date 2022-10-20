@@ -68,7 +68,7 @@ module Tg
     end
 
     def edit_message chat_id, message_id, text, **kwargs
-      http_request :post_form, 'editMessage', body: { chat_id: chat_id, message_id: message_id, text: text }, **kwargs
+      http_request :post_form, 'editMessageText', body: { chat_id: chat_id, message_id: message_id, text: text }, **kwargs
     end
 
     def delete_message chat_id, message_id, *, **kwargs
